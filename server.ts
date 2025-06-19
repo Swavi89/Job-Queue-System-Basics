@@ -1,10 +1,13 @@
 import express, { Request, Response } from "express";
 import { Queue } from "bullmq";
+import IORedis from 'ioredis';
 
-const redis_connection = {
+const redis_connection = new IORedis ({
+  maxRetriesPerRequest: null,
   host: "127.0.0.1",
   port: 6379,
-};
+  password: ''
+})
 
 const app = express();
 const port = 3000;

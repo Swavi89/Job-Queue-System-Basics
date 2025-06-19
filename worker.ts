@@ -1,10 +1,13 @@
 import { Worker } from "bullmq";
 import fs from "fs";
+import IORedis from 'ioredis';
 
-const redis_connection = {
+const redis_connection = new IORedis ({
+  maxRetriesPerRequest: null,
   host: "127.0.0.1",
   port: 6379,
-};
+  password: ''
+})
 
 const worker = new Worker(
   "SendHello",
