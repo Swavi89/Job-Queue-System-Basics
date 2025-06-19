@@ -1,12 +1,17 @@
-import { Worker } from "bullmq";
-import fs from "fs";
+import { Worker } from 'bullmq';
+import fs from 'fs';
 import IORedis from 'ioredis';
+import dotenv from 'dotenv'
+
+dotenv.config({
+  path:`${__dirname}/../.env`
+});
 
 const redis_connection = new IORedis ({
   maxRetriesPerRequest: null,
-  host: "127.0.0.1",
-  port: 6379,
-  password: ''
+  host: process.env.REDIS_HOST || "",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
+  password: process.env.REDIS_PASSWORD || ""
 })
 
 const worker = new Worker(

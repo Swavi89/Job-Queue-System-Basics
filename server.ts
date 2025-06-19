@@ -1,13 +1,18 @@
-import express, { Request, Response } from "express";
-import { Queue } from "bullmq";
+import express, { Request, Response } from 'express';
+import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import dotenv from 'dotenv'
 
-const redis_connection = new IORedis ({
+dotenv.config({
+  path:`${__dirname}/../.env`
+});
+
+const redis_connection = new IORedis({
   maxRetriesPerRequest: null,
-  host: "127.0.0.1",
-  port: 6379,
-  password: ''
-})
+  host: process.env.REDIS_HOST || "",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
+  password: process.env.REDIS_PASSWORD || "",
+});
 
 const app = express();
 const port = 3000;
