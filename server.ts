@@ -28,6 +28,8 @@ app.get("/write-to-file", async (req: Request, res: Response) => {
     await queue.add("SendHello", {
       fileName: fileName as String,
       fileContent: fileContent as String,
+    },{
+      attempts: 3,
     });
   } catch (error) {
     console.error("Error adding job to queue:", error);

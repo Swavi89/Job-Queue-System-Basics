@@ -19,6 +19,11 @@ const worker = new Worker(
   async (job) => {
     console.log(`Processing job ${job.id}`);
     const { fileName, fileContent } = job.data;
+
+    if(typeof fileContent === 'string' && fileContent.includes("fail")) {
+      throw new Error("File content contains 'fail'. Failed to write file");
+    }
+
     try {
       fs.writeFileSync(fileName as string, fileContent as string);
       console.log(`File '${fileName}' created successfully!`);
@@ -33,3 +38,7 @@ const worker = new Worker(
 );
 
 console.log("Worker started and waiting for jobs...");
+
+worker.on('failed', (job, error) => {
+  console.error(`job ${job.id} failed after ${job.attemptsMade} attempts, error: ${error.message}`)
+});
