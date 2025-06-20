@@ -21,6 +21,7 @@ app.listen(port, () => {
 });
 
 const queue = new Queue("SendHello", { connection: redis_connection });
+const saveFileQueue = new Queue("SaveFile", {connection: redis_connection});
 
 app.get("/write-to-file", async (req: Request, res: Response) => {
   const { fileName, fileContent } = req.query;
@@ -33,5 +34,23 @@ app.get("/write-to-file", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error adding job to queue:", error);
+  }
+});
+
+app.get("/delayed", async (req: Request, res:Response) => {
+  const {fileName, fileContent} = req.query;
+
+  try {
+    await saveFileQueue.add("SaveFile", {
+      fileName,
+      fileContent
+    },{
+      delay: 10000,
+      attempts: 3
+    });
+    res.send("Job scheduled to run after 10 seconds");
+  } catch (error) {
+    console.error("Error adding job to the queue:", error);
+    res.status(500).send("Failed to schedule the delayed job");
   }
 });

@@ -4,10 +4,10 @@ import IORedis from 'ioredis';
 import dotenv from 'dotenv'
 
 dotenv.config({
-  path:`${__dirname}/../.env`
+  path: `${__dirname}/../.env`
 });
 
-const redis_connection = new IORedis ({
+const redis_connection = new IORedis({
   maxRetriesPerRequest: null,
   host: process.env.REDIS_HOST || "",
   port: parseInt(process.env.REDIS_PORT || "6379"),
@@ -20,7 +20,7 @@ const worker = new Worker(
     console.log(`Processing job ${job.id}`);
     const { fileName, fileContent } = job.data;
 
-    if(typeof fileContent === 'string' && fileContent.includes("fail")) {
+    if (typeof fileContent === 'string' && fileContent.includes("fail")) {
       throw new Error("File content contains 'fail'. Failed to write file");
     }
 
@@ -36,6 +36,24 @@ const worker = new Worker(
   },
   { connection: redis_connection }
 );
+
+const saveFileWorker = new Worker(
+  "SaveFile",
+  async (job) => {
+    console.log(`Processing job ${job.id}`);
+    const { fileName, fileContent } = job.data;
+
+    try {
+      fs.writeFileSync(fileName, fileContent);
+      console.log(`(Delayed) file ${fileName} created succefully.`);
+      return { success: true, fileName, message: "File written successfully" };
+    } catch (error) {
+      console.error(`Error writing file '${fileName}':`, error);
+      throw error;
+    }
+  },
+  { connection: redis_connection }
+)
 
 console.log("Worker started and waiting for jobs...");
 
