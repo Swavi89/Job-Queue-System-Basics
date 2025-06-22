@@ -53,7 +53,24 @@ const saveFileWorker = new Worker(
     }
   },
   { connection: redis_connection }
-)
+);
+
+const savePriorityWorker = new Worker(
+  "SavePriorityFile",
+  async(job) => {
+    console.log(`Processing job ${job.id} with priority ${job.opts.priority} and name ${job.name}`);
+    const {fileName, fileContent} = job.data;
+    try {
+      fs.writeFileSync(fileName, fileContent);
+      console.log(`Priority file ${fileName} created successfully`);
+      return {success:true, fileName, message: "File written successfully"}
+    } catch (error) {
+      console.error(`Error writing file '${fileName}':`, error);
+      throw error;
+    }
+  },
+  {connection: redis_connection}
+);
 
 console.log("Worker started and waiting for jobs...");
 

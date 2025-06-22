@@ -4,7 +4,7 @@ import IORedis from 'ioredis';
 import dotenv from 'dotenv'
 
 dotenv.config({
-  path:`${__dirname}/../.env`
+  path: `${__dirname}/../.env`
 });
 
 const redis_connection = new IORedis({
@@ -21,7 +21,8 @@ app.listen(port, () => {
 });
 
 const queue = new Queue("SendHello", { connection: redis_connection });
-const saveFileQueue = new Queue("SaveFile", {connection: redis_connection});
+const saveFileQueue = new Queue("SaveFile", { connection: redis_connection });
+const priorityQueue = new Queue("SavePriorityFile", { connection: redis_connection });
 
 app.get("/write-to-file", async (req: Request, res: Response) => {
   const { fileName, fileContent } = req.query;
@@ -29,7 +30,7 @@ app.get("/write-to-file", async (req: Request, res: Response) => {
     await queue.add("SendHello", {
       fileName: fileName as String,
       fileContent: fileContent as String,
-    },{
+    }, {
       attempts: 3,
     });
   } catch (error) {
@@ -37,14 +38,14 @@ app.get("/write-to-file", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/delayed", async (req: Request, res:Response) => {
-  const {fileName, fileContent} = req.query;
+app.get("/delayed", async (req: Request, res: Response) => {
+  const { fileName, fileContent } = req.query;
 
   try {
     await saveFileQueue.add("SaveFile", {
       fileName,
       fileContent
-    },{
+    }, {
       delay: 10000,
       attempts: 3
     });
@@ -54,3 +55,29 @@ app.get("/delayed", async (req: Request, res:Response) => {
     res.status(500).send("Failed to schedule the delayed job");
   }
 });
+
+const priorityMap: Record<string, number> = {
+  high: 1,
+  medium: 2,
+  low: 3
+};
+
+app.get("/priority", async (req: Request, res: Response) => {
+  const { fileName, fileContent, priority } = req.query;
+  const priorityValue = priorityMap[(priority as string).toLowerCase()];
+
+  try {
+    await priorityQueue.add("SavePriorityFile", {
+      fileName,
+      fileContent
+    },
+      {
+        priority: priorityValue,
+        attempts: 3
+      })
+    res.send(`Job added with ${priority} priority.`)
+  } catch (error) {
+    console.error("Error adding priority job to queue.", error);
+    res.status(500).send("Failed to add priority job.");
+  }
+})
