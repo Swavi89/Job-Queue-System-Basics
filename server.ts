@@ -15,6 +15,7 @@ const redis_connection = new IORedis({
 });
 
 const app = express();
+app.use(express.json()); //Parse Json body for post request
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
@@ -23,6 +24,7 @@ app.listen(port, () => {
 const queue = new Queue("SendHello", { connection: redis_connection });
 const saveFileQueue = new Queue("SaveFile", { connection: redis_connection });
 const priorityQueue = new Queue("SavePriorityFile", { connection: redis_connection });
+const jsonFileQueue = new Queue("SaveJsonFile", { connection: redis_connection });
 
 app.get("/write-to-file", async (req: Request, res: Response) => {
   const { fileName, fileContent } = req.query;
@@ -79,5 +81,27 @@ app.get("/priority", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error adding priority job to queue.", error);
     res.status(500).send("Failed to add priority job.");
+  }
+});
+
+app.post("/file", async (req: Request, res: Response) => {
+  const { fileName, fileContent } = req.body;
+
+  if (!fileName || !fileContent) {
+    return res.status(400).send({ error: 'Missing Filename or Filecontent' })
+  }
+
+  try {
+    await jsonFileQueue.add("SaveJsonFile", {
+      fileName,
+      fileContent
+    },
+      {
+        attempts: 3
+      });
+    res.send("File added to the queue.")
+  } catch (error) {
+    console.error("Error adding job to the queue:", error);
+    res.status(500).send("Failed to add job to the queue.");
   }
 })
