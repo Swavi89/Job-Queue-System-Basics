@@ -25,6 +25,7 @@ const queue = new Queue("SendHello", { connection: redis_connection });
 const saveFileQueue = new Queue("SaveFile", { connection: redis_connection });
 const priorityQueue = new Queue("SavePriorityFile", { connection: redis_connection });
 const jsonFileQueue = new Queue("SaveJsonFile", { connection: redis_connection });
+const batchFileQueue = new Queue("saveBatchFiles", { connection: redis_connection });
 
 app.get("/write-to-file", async (req: Request, res: Response) => {
   const { fileName, fileContent } = req.query;
@@ -103,5 +104,38 @@ app.post("/file", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error adding job to the queue:", error);
     res.status(500).send("Failed to add job to the queue.");
+  }
+});
+
+app.post("/batch-upload", async (req: Request, res: Response) => {
+  const { files } = req.body;
+
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    return res.status(400).send({ error: "file array is required and must not be empty." })
+  }
+
+  for (const file of files) {
+    if (!file.fileName || !file.fileContent) {
+      return res.status(400).send({ error: "Each file must content filename & filecontent" })
+    }
+  }
+
+  try {
+    const jobIds: string[] = [];
+    for (const file of files) {
+
+      const job = await batchFileQueue.add("saveBatchFiles", {
+        fileName: file.fileName,
+        fileContent: file.fileContent
+      },
+        {
+          attempts: 3
+        });
+      jobIds.push(job.id as string);
+    }
+    res.send("File added to the queue");
+  } catch (error) {
+    console.error("Error adding jobs to the queue", error);
+    res.status(500).send("Failed to add the batch jobs to queue");
   }
 })

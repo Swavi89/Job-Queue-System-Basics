@@ -90,6 +90,24 @@ const SaveJsonWorker = new Worker(
   {connection: redis_connection}
 );
 
+const BatchFileWorker = new Worker(
+  "saveBatchFiles",
+  async(job) => {
+    console.log(`Processing job ${job.id}`);
+    const {fileName, fileContent} = job.data;
+    
+    try {
+      fs.writeFileSync(fileName, fileContent);
+      console.log(`File ${fileName} created succesfully.`);
+      return {success: true, fileName, message: "File written successfully."}
+    } catch (error) {
+      console.error(`Error writing file ${fileName}:`, error);
+      throw error;      
+    }
+  },
+  {connection: redis_connection}
+);
+
 console.log("Worker started and waiting for jobs...");
 
 worker.on('failed', (job, error) => {
